@@ -2,17 +2,27 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from PIL import Image
 from io import BytesIO
 from PIL import ImageFile
+import tensorflow as tf
 import pygame
+import cv2
+import numpy as np
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-IMG_SIZE = 500
-model
+IMG_SIZE = 200
+global model
+people = ["Juan","Graeme","Grayson","Liam","Spencer"]
 
 def playMusic(prediction):
-    pygame.mixer.music.load(prediction + ".wav")
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy() == True:
-        continue
+    print(prediction)
+    for index, person in np.ndenumerate(prediction):
+        if person > 0.95:
+            global people
+            print(index)
+            pygame.mixer.music.load("/home/pi/Documents/Greeting/greeting/Audio/" + people[index[0]] + ".mp3")
+            pygame.mixer.music.play()
+            while pygame.mixer.music.get_busy() == True:
+                continue
+            break
 
 class Serv(BaseHTTPRequestHandler):
     def _set_response(self):
@@ -26,23 +36,45 @@ class Serv(BaseHTTPRequestHandler):
 
     def do_POST(self):
         print("post")
+        
         content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
-        print(content_length)
         post_data = self.rfile.read(content_length) # <--- Gets the data itself
-        image = Image.open(BytesIO(post_data))
-        #scr.save("test.jpeg")
-        resizedImg = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
+        data_array = np.frombuffer(post_data, dtype='uint8')
+        image = cv2.imdecode(data_array, cv2.IMREAD_COLOR)
+        
+        faces = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml').detectMultiScale(image, 1.01, 8, minSize=(800, 800))
+        print(faces)
+        face_crop = []
+        for f in faces:
+            x, y, w, h = [ v for v in f ]
+            face_crop.append(image[y:y+h, x:x+w])
+        
+        if (np.size(face_crop) == 0):
+            self._set_response()
+            self.wfile.write("POST request for {}".format(self.path).encode('utf-8'))
+            return
+        
+        
+        resizedImage = cv2.resize(face_crop[0], (IMG_SIZE,IMG_SIZE))
+        cv2.imshow('resizedImage', resizedImage)
+        cv2.waitKey(0)
+        
+        open_cv_image = np.array(resizedImage)
+        imageArr = np.array(open_cv_image).reshape(-1, IMG_SIZE, IMG_SIZE, 3)
 
         self._set_response()
         self.wfile.write("POST request for {}".format(self.path).encode('utf-8'))
-
-        prediction = model.predict(resizedImg)
-        playMusic(prediction)
+        
+        global model
+        prediction = model.predict(imageArr)
+        print(prediction)
+        playMusic(prediction[0])
 
 
 def run(server_class=HTTPServer, handler_class=Serv, port=8080):
     server_address = ('', port)
-    model = tf.keras.models.load_model('saved_model/my_model')
+    global model
+    model = tf.keras.models.load_model('GreetingModel')
     pygame.mixer.init()
     httpd = server_class(server_address, handler_class)
     try:
