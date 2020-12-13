@@ -11,9 +11,72 @@ import pickle
 
 DataDir = "/Users/graysonhalliday/Documents/greetingNeuralNet"
 Categories = ["Juan","Graeme","Grayson","Liam", "Spencer"]
+TestCategories = ["JuanTest","GraemeTest","GraysonTest","LiamTest","SpencerTest"]
 IMG_SIZE = 200
 
 trainingData = []
+
+def testModel():
+    testSizes = [0,0,0,0,0]
+    testResults = [0,0,0,0,0]
+
+    curPath = os.path.join(DataDir,"testingData")
+    testData = []
+    for testPerson in os.listdir(curPath):
+        #print(testPerson)
+        if (testPerson == ".DS_Store"):
+                continue
+        testPath = os.path.join(curPath,testPerson)
+        classNum = TestCategories.index(testPerson)
+        for testImage in os.listdir(testPath):
+            if (testImage == ".DS_Store"):
+                continue
+            testSizes[classNum]+=1
+            print(testImage)
+            img_array = cv2.imread(os.path.join(testPath,testImage),cv2.IMREAD_COLOR)
+            resizedImgArray = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
+            testData.append([resizedImgArray,classNum])
+
+    XTest = []
+    YTest = []
+
+    for features, label in testData:
+        XTest.append(features)
+        YTest.append(label)
+
+    XTest = np.array(XTest).reshape(-1,IMG_SIZE,IMG_SIZE, 3)
+    YTest = keras.utils.to_categorical(YTest, 5)
+
+    XTest = XTest/255.0
+
+    #print(YTest)
+    #print(testSizes)
+    predictions = model.predict(XTest)
+    #print(predictions)
+
+    for index, testPrediction in enumerate(predictions):
+        detPerson = 0
+        actPerson = 0
+        print("index is " + str(index))
+        for detIndex, detectedPerson in enumerate(testPrediction):
+            if detectedPerson > 0.5:
+                detPerson = detIndex
+                #print("det person is " + str(detIndex))
+                break
+        #print("index after is" + str(index))
+        #print(YTest[index])
+        for actIndex, actualPerson in enumerate(YTest[index]):
+            if actualPerson == 1:
+                actPerson = actIndex
+                #print("act person is " + str(actIndex))
+                break
+        if detPerson == actPerson:
+            testResults[actPerson]+=1
+    
+    for index, results in enumerate(testResults):
+        print(Categories[index])
+        print("Size: " + str(testSizes[index]) + " Got: " + str(testResults[index]) + " For: " + str(results/testSizes[index]))
+
 
 def createTrainingData():
     for person in Categories:
@@ -57,24 +120,26 @@ X = X/255.0
 
 model = Sequential()
 
-model.add(Conv2D(16, (6,6), input_shape=X.shape[1:]))
+model.add(Conv2D(16, (3,3), input_shape=X.shape[1:]))
 model.add(LeakyReLU(alpha=0.1))
 model.add(MaxPooling2D(pool_size=(2,2)))
 
-model.add(Conv2D(32, (4,4), input_shape=X.shape[1:]))
-model.add(LeakyReLU(alpha=0.1))
-model.add(MaxPooling2D(pool_size=(2,2)))
+#model.add(Conv2D(64, (3,3), input_shape=X.shape[1:]))
+#model.add(LeakyReLU(alpha=0.1))
+#model.add(MaxPooling2D(pool_size=(2,2)))
 
-model.add(Conv2D(64, (3,3), input_shape=X.shape[1:]))
-model.add(LeakyReLU(alpha=0.1))
-model.add(MaxPooling2D(pool_size=(2,2)))
+#model.add(Conv2D(64, (3,3), input_shape=X.shape[1:]))
+#model.add(LeakyReLU(alpha=0.1))
+#model.add(MaxPooling2D(pool_size=(2,2)))
 
-model.add(Conv2D(128, (3,3), input_shape=X.shape[1:]))
-model.add(LeakyReLU(alpha=0.1))
-model.add(MaxPooling2D(pool_size=(2,2)))
+#model.add(Conv2D(128, (3,3), input_shape=X.shape[1:]))
+#model.add(LeakyReLU(alpha=0.1))
+#model.add(MaxPooling2D(pool_size=(2,2)))
 
 model.add(Flatten())
 
+#model.add(Dense(128))
+#model.add(Dense(128))
 model.add(Dense(5))
 model.add(Activation('softmax'))
 
@@ -82,20 +147,7 @@ model.compile(loss="categorical_crossentropy",
                 optimizer="adam",
                 metrics=['accuracy'])
 
-model.fit(X,Y,batch_size=20, validation_split=0, epochs=10)
+model.fit(X,Y,batch_size=20, validation_split=0, epochs=15)
 
 model.save('greeting_model')
-
-testPath = os.path.join(DataDir,"testingData")
-T = []
-for testImage in os.listdir(testPath):
-    print(testImage)
-    if (testImage == ".DS_Store"):
-        continue
-    img_array = cv2.imread(os.path.join(testPath,testImage),cv2.IMREAD_COLOR)
-    resizedImgArray = cv2.resize(img_array, (IMG_SIZE, IMG_SIZE))
-    T.append(resizedImgArray)
-
-T = np.array(T).reshape(-1,IMG_SIZE,IMG_SIZE, 3)
-
-print(model.predict(T))
+testModel()
