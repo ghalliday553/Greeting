@@ -12,7 +12,7 @@ import pickle
 DataDir = "/Users/graysonhalliday/Documents/greetingNeuralNet"
 Categories = ["Juan","Graeme","Grayson","Liam", "Spencer"]
 TestCategories = ["JuanTest","GraemeTest","GraysonTest","LiamTest","SpencerTest"]
-IMG_SIZE = 200
+IMG_SIZE = 500
 
 trainingData = []
 
@@ -120,13 +120,13 @@ X = X/255.0
 
 model = Sequential()
 
-model.add(Conv2D(16, (3,3), input_shape=X.shape[1:]))
+model.add(Conv2D(16, (4,4), input_shape=X.shape[1:]))
 model.add(LeakyReLU(alpha=0.1))
 model.add(MaxPooling2D(pool_size=(2,2)))
 
-#model.add(Conv2D(64, (3,3), input_shape=X.shape[1:]))
-#model.add(LeakyReLU(alpha=0.1))
-#model.add(MaxPooling2D(pool_size=(2,2)))
+model.add(Conv2D(32, (3,3), input_shape=X.shape[1:]))
+model.add(LeakyReLU(alpha=0.1))
+model.add(MaxPooling2D(pool_size=(2,2)))
 
 #model.add(Conv2D(64, (3,3), input_shape=X.shape[1:]))
 #model.add(LeakyReLU(alpha=0.1))
