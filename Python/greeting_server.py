@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-IMG_SIZE = 200
+IMG_SIZE = 500
 global model
 people = ["Juan","Graeme","Grayson","Liam","Spencer"]
 
@@ -18,7 +18,7 @@ def playMusic(prediction):
         if person > 0.95:
             global people
             print(index)
-            pygame.mixer.music.load("/home/pi/Documents/Greeting/greeting/Audio/" + people[index[0]] + ".mp3")
+            pygame.mixer.music.load("/home/pi/Documents/Greeting/Greeting/Audio/" + people[index[0]] + ".mp3")
             pygame.mixer.music.play()
             while pygame.mixer.music.get_busy() == True:
                 continue
@@ -47,6 +47,10 @@ class Serv(BaseHTTPRequestHandler):
         face_crop = []
         for f in faces:
             x, y, w, h = [ v for v in f ]
+            y-=500
+            x-=500
+            w+=500
+            h+=500
             face_crop.append(image[y:y+h, x:x+w])
         
         if (np.size(face_crop) == 0):
@@ -74,7 +78,7 @@ class Serv(BaseHTTPRequestHandler):
 def run(server_class=HTTPServer, handler_class=Serv, port=8080):
     server_address = ('', port)
     global model
-    model = tf.keras.models.load_model('GreetingModel')
+    model = tf.keras.models.load_model('greeting_model')
     pygame.mixer.init()
     httpd = server_class(server_address, handler_class)
     try:
